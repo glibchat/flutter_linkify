@@ -39,6 +39,10 @@ class Linkify extends StatelessWidget {
   /// Style of link text
   final TextStyle? linkStyle;
 
+  /// Builder to determine style of text (both non-link and link). If this is provided
+  /// [style] and [linkStyle] will be ignored.
+  final TextStyle? Function(LinkifyElement)? textStyleBuilder;
+
   // Text.rich
 
   /// How the text should be aligned horizontally.
@@ -83,6 +87,7 @@ class Linkify extends StatelessWidget {
     // TextSpan
     this.style,
     this.linkStyle,
+    this.textStyleBuilder,
     // RichText
     this.textAlign = TextAlign.start,
     this.textDirection,
@@ -117,7 +122,9 @@ class Linkify extends StatelessWidget {
               decoration: TextDecoration.underline,
             )
             .merge(linkStyle),
+        textStyleBuilder: textStyleBuilder,
       ),
+
       textAlign: textAlign,
       textDirection: textDirection,
       maxLines: maxLines,
@@ -156,6 +163,10 @@ class SelectableLinkify extends StatelessWidget {
 
   /// Style of link text
   final TextStyle? linkStyle;
+
+  /// Builder to determine style of text (both non-link and link). If this is provided
+  /// [style] and [linkStyle] will be ignored.
+  final TextStyle? Function(LinkifyElement)? textStyleBuilder;
 
   // Text.rich
 
@@ -235,6 +246,7 @@ class SelectableLinkify extends StatelessWidget {
     // TextSpan
     this.style,
     this.linkStyle,
+    this.textStyleBuilder,
     // RichText
     this.textAlign,
     this.textDirection,
@@ -282,6 +294,7 @@ class SelectableLinkify extends StatelessWidget {
             )
             .merge(linkStyle),
         useMouseRegion: useMouseRegion,
+        textStyleBuilder: textStyleBuilder,
       ),
       textAlign: textAlign,
       textDirection: textDirection,
@@ -328,6 +341,7 @@ TextSpan buildTextSpan(
   List<LinkifyElement> elements, {
   TextStyle? style,
   TextStyle? linkStyle,
+  TextStyle? Function(LinkifyElement)? textStyleBuilder,
   LinkCallback? onOpen,
   bool useMouseRegion = false,
 }) =>
@@ -338,6 +352,7 @@ TextSpan buildTextSpan(
         linkStyle: linkStyle,
         onOpen: onOpen,
         useMouseRegion: useMouseRegion,
+        textStyleBuilder: textStyleBuilder,
       ),
     );
 
@@ -348,13 +363,19 @@ List<InlineSpan>? buildTextSpanChildren(
   TextStyle? linkStyle,
   LinkCallback? onOpen,
   bool useMouseRegion = false,
+  TextStyle? Function(LinkifyElement)? textStyleBuilder,
 }) =>
     [
       for (var element in elements)
-        if (element is LinkableElement)
+        if (element is TextElement)
           TextSpan(
             text: element.text,
-            style: linkStyle,
+            style: textStyleBuilder != null ? textStyleBuilder(element) : style,
+          )
+        else if (element is LinkableElement)
+          TextSpan(
+            text: element.text,
+            style: textStyleBuilder != null ? textStyleBuilder(element) : linkStyle,
             recognizer: onOpen != null
                 ? (TapGestureRecognizer()..onTap = () => onOpen(element))
                 : null,
@@ -363,7 +384,7 @@ List<InlineSpan>? buildTextSpanChildren(
         else
           TextSpan(
             text: element.text,
-            style: style,
+            style: textStyleBuilder != null ? textStyleBuilder(element) : style,
           ),
     ];
 

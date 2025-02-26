@@ -17,6 +17,9 @@ export 'package:linkify/linkify.dart'
 /// Callback clicked link
 typedef LinkCallback = void Function(LinkableElement link);
 
+/// Callback clicked link
+typedef LongPressCallback = void Function(LinkableElement link);
+
 /// Turns URLs into links
 class Linkify extends StatelessWidget {
   /// Text to be linkified
@@ -78,6 +81,9 @@ class Linkify extends StatelessWidget {
 
   final bool useMouseRegion;
 
+  /// Callback for longpress a link
+  final LinkCallback? onLongPress;
+
   const Linkify({
     Key? key,
     required this.text,
@@ -100,6 +106,7 @@ class Linkify extends StatelessWidget {
     this.textWidthBasis = TextWidthBasis.parent,
     this.textHeightBehavior,
     this.useMouseRegion = true,
+    this.onLongPress,
   }) : super(key: key);
 
   @override
@@ -123,8 +130,8 @@ class Linkify extends StatelessWidget {
             )
             .merge(linkStyle),
         textStyleBuilder: textStyleBuilder,
+        onLongPress: onLongPress,
       ),
-
       textAlign: textAlign,
       textDirection: textDirection,
       maxLines: maxLines,
@@ -344,6 +351,7 @@ TextSpan buildTextSpan(
   TextStyle? Function(LinkifyElement)? textStyleBuilder,
   LinkCallback? onOpen,
   bool useMouseRegion = false,
+  LinkCallback? onLongPress,
 }) =>
     TextSpan(
       children: buildTextSpanChildren(
@@ -353,6 +361,7 @@ TextSpan buildTextSpan(
         onOpen: onOpen,
         useMouseRegion: useMouseRegion,
         textStyleBuilder: textStyleBuilder,
+        onLongPress: onLongPress,
       ),
     );
 
@@ -364,6 +373,7 @@ List<InlineSpan>? buildTextSpanChildren(
   LinkCallback? onOpen,
   bool useMouseRegion = false,
   TextStyle? Function(LinkifyElement)? textStyleBuilder,
+  LinkCallback? onLongPress,
 }) =>
     [
       for (var element in elements)
@@ -373,13 +383,25 @@ List<InlineSpan>? buildTextSpanChildren(
             style: textStyleBuilder != null ? textStyleBuilder(element) : style,
           )
         else if (element is LinkableElement)
-          TextSpan(
-            text: element.text,
-            style: textStyleBuilder != null ? textStyleBuilder(element) : linkStyle,
-            recognizer: onOpen != null
-                ? (TapGestureRecognizer()..onTap = () => onOpen(element))
-                : null,
-            mouseCursor: useMouseRegion ? SystemMouseCursors.click : null,
+          WidgetSpan(
+            child: GestureDetector(
+              onTap: () {
+                if (onOpen != null) {
+                  onOpen.call(element);
+                }
+              },
+              onLongPress: () {
+                if (onLongPress != null) {
+                  onLongPress.call(element);
+                }
+              },
+              child: Text(
+                element.text,
+                style: textStyleBuilder != null
+                    ? textStyleBuilder(element)
+                    : linkStyle,
+              ),
+            ),
           )
         else
           TextSpan(
